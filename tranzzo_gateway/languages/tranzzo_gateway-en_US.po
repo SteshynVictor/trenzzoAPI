@@ -1,0 +1,65 @@
+# Translation of WordPress - Administration in English
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2018-04-04 17:17+0300\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Language: en_US\n"
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"X-Generator: Poedit 2.0.6\n"
+
+msgid "Tranzzo"
+msgstr "Tranzzo"
+
+msgid "Платежный шлюз отключен."
+msgstr "Payment gateway is disabled."
+
+msgid "Tranzzo не поддерживает валюту Вашего магазина!"
+msgstr "Tranzzo does not support the currency of your store!"
+
+msgid "Вкл. / Выкл."
+msgstr "On / Off"
+
+msgid "Включить"
+msgstr "On"
+
+msgid "Заголовок"
+msgstr "Header"
+
+msgid "Заголовок, который отображается на странице оформления заказа"
+msgstr "The title that appears on the ordering page"
+
+msgid "Описание"
+msgstr "Description"
+
+msgid "Описание, которое отображается в процессе выбора формы оплаты"
+msgstr "The description that is displayed during the payment method selection process"
+
+msgid "Оплатить через платежную систему Tranzzo"
+msgstr "Pay through the payment system Tranzzo"
+
+msgid "POS_ID Tranzzo"
+msgstr "POS_ID Tranzzo"
+
+msgid "API_KEY Tranzzo"
+msgstr "API_KEY Tranzzo"
+
+msgid "API_SECRET Tranzzo"
+msgstr "API_SECRET Tranzzo"
+
+msgid "ENDPOINTS_KEY Tranzzo"
+msgstr "ENDPOINTS_KEY Tranzzo"
+
+msgid "Заказ не оплачен"
+msgstr "Order not paid"
+
+msgid "ID платежа(payment id): "
+msgstr "Payment id: "
+
+msgid "ID транзакции(transaction id): "
+msgstr "Transaction id: "
