@@ -1,10 +1,10 @@
 <?php
 /*
-Plugin Name: Tranzzo Gateway
-Description: Платежный шлюз "Tranzzo" для сайтов на WordPress.
+Plugin Name: TRANZZO Gateway
+Description: Платежный шлюз "TRANZZO" для сайтов на WordPress.
 Version: 1.0
 Lat Update: 01.03.2018
-Author: Tranzzo
+Author: TRANZZO
 Author URI: https://tranzzo.com
 */
 
@@ -41,8 +41,8 @@ function tranzzo_init()
 
             $this->id = 'tranzzo';
             $this->has_fields = false;
-            $this->method_title = 'Tranzzo';
-            $this->method_description = __('Tranzzo', 'tranzzo');
+            $this->method_title = 'TRANZZO';
+            $this->method_description = __('TRANZZO', 'tranzzo');
             $this->init_form_fields();
             $this->init_settings();
             $this->title = $this->get_option('title');
@@ -65,12 +65,11 @@ function tranzzo_init()
 
             $this->icon = apply_filters('woocommerce_tranzzo_icon', plugin_dir_url(__FILE__) . '/images/logo.png');
 
-            if (!$this->supportCurrencyTranzzo()) {
+            if (!$this->supportCurrencyTRANZZO()) {
                 $this->enabled = 'no';
             }
 
             // Actions
-//            add_action('woocommerce_receipt_' . $this->id, array($this, 'receipt_page'));
             add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
 
             // Payment listener/API hook
@@ -79,8 +78,8 @@ function tranzzo_init()
 
         public function admin_options()
         {
-            if ($this->supportCurrencyTranzzo()) { ?>
-            <h3><?php _e('Tranzzo', 'tranzzo'); ?></h3>
+            if ($this->supportCurrencyTRANZZO()) { ?>
+            <h3><?php _e('TRANZZO', 'tranzzo'); ?></h3>
             <table class="form-table">
                 <?php $this->generate_settings_html();?>
             </table>
@@ -88,7 +87,7 @@ function tranzzo_init()
             } else { ?>
                 <div class="inline error">
                     <p>
-                        <strong><?php _e('Платежный шлюз отключен.', 'tranzzo'); ?></strong>: <?php _e('Tranzzo не поддерживает валюту Вашего магазина!', 'tranzzo'); ?>
+                        <strong><?php _e('Платежный шлюз отключен.', 'tranzzo'); ?></strong>: <?php _e('TRANZZO не поддерживает валюту Вашего магазина!', 'tranzzo'); ?>
                     </p>
                 </div>
                 <?php
@@ -108,39 +107,39 @@ function tranzzo_init()
                     'title' => __('Заголовок', 'tranzzo'),
                     'type' => 'text',
                     'description' => __('Заголовок, который отображается на странице оформления заказа', 'tranzzo'),
-                    'default' => 'Tranzzo',
+                    'default' => 'TRANZZO',
                     'desc_tip' => true,
                 ),
                 'description' => array(
                     'title' => __('Описание', 'tranzzo'),
                     'type' => 'textarea',
                     'description' => __('Описание, которое отображается в процессе выбора формы оплаты', 'tranzzo'),
-                    'default' => __('Оплатить через платежную систему Tranzzo', 'tranzzo'),
+                    'default' => __('Оплатить через платежную систему TRANZZO', 'tranzzo'),
                 ),
                 'POS_ID' => array(
                     'title' => 'POS_ID',
                     'type' => 'text',
-                    'description' => __('POS_ID Tranzzo', 'tranzzo'),
+                    'description' => __('POS_ID TRANZZO', 'tranzzo'),
                 ),
                 'API_KEY' => array(
                     'title' => 'API_KEY',
                     'type' => 'password',
-                    'description' => __('API_KEY Tranzzo', 'tranzzo'),
+                    'description' => __('API_KEY TRANZZO', 'tranzzo'),
                 ),
                 'API_SECRET' => array(
                     'title' => 'API_SECRET',
                     'type' => 'password',
-                    'description' => __('API_SECRET Tranzzo', 'tranzzo'),
+                    'description' => __('API_SECRET TRANZZO', 'tranzzo'),
                 ),
                 'ENDPOINTS_KEY' => array(
                     'title' => 'ENDPOINTS_KEY',
                     'type' => 'password',
-                    'description' => __('ENDPOINTS_KEY Tranzzo', 'tranzzo'),
+                    'description' => __('ENDPOINTS_KEY TRANZZO', 'tranzzo'),
                 ),
             );
         }
 
-        function supportCurrencyTranzzo()
+        function supportCurrencyTRANZZO()
         {
             if (!in_array(get_option('woocommerce_currency'), array('USD', 'EUR', 'UAH', 'RUB'))) {
                 return false;
@@ -244,16 +243,13 @@ function tranzzo_init()
             $tranzzo = new TranzzoApi($this->POS_ID, $this->API_KEY, $this->API_SECRET, $this->ENDPOINTS_KEY);
             $data_response = json_decode(TranzzoApi::base64url_decode($data), true);
             $order_id = (int)$data_response[TranzzoApi::P_REQ_ORDER];
-//            self::writeLog('begin check');
             if($tranzzo -> validateSignature($data, $signature) && $order_id) {
                 $order = wc_get_order($order_id);
-//                self::writeLog('valid check');
                 $amount_payment = TranzzoApi::amountToDouble($data_response[TranzzoApi::P_REQ_AMOUNT]);
                 $amount_order = TranzzoApi::amountToDouble($order->get_total());
                 if ($data_response[TranzzoApi::P_RES_RESP_CODE] == 1000 && ($amount_payment == $amount_order)) {
-//                    self::writeLog('pay success');
                     $order->payment_complete();
-                    $order->add_order_note(__('Заказ успешно оплачен через Tranzzo', 'tranzzo'));
+                    $order->add_order_note(__('Заказ успешно оплачен через TRANZZO', 'tranzzo'));
                     $order->add_order_note("ID платежа(payment id): " . $data_response[TranzzoApi::P_RES_PAYMENT_ID]);
                     $order->add_order_note("ID транзакции(transaction id): " . $data_response[TranzzoApi::P_RES_TRSACT_ID]);
                     $order->save();
@@ -261,8 +257,9 @@ function tranzzo_init()
                     exit;
                 }
 
-                $order->update_status('pending');
+                $order->update_status('failed');
                 $order->add_order_note(__('Заказ не оплачен', 'tranzzo'));
+                $order->save();
                 exit;
             }
             exit;

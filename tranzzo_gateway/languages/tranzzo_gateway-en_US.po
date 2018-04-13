@@ -13,14 +13,14 @@ msgstr ""
 "Language-Team: \n"
 "X-Generator: Poedit 2.0.6\n"
 
-msgid "Tranzzo"
-msgstr "Tranzzo"
+msgid "TRANZZO"
+msgstr "TRANZZO"
 
 msgid "Платежный шлюз отключен."
 msgstr "Payment gateway is disabled."
 
-msgid "Tranzzo не поддерживает валюту Вашего магазина!"
-msgstr "Tranzzo does not support the currency of your store!"
+msgid "TRANZZO не поддерживает валюту Вашего магазина!"
+msgstr "TRANZZO does not support the currency of your store!"
 
 msgid "Вкл. / Выкл."
 msgstr "On / Off"
@@ -40,20 +40,20 @@ msgstr "Description"
 msgid "Описание, которое отображается в процессе выбора формы оплаты"
 msgstr "The description that is displayed during the payment method selection process"
 
-msgid "Оплатить через платежную систему Tranzzo"
-msgstr "Pay through the payment system Tranzzo"
+msgid "Оплатить через платежную систему TRANZZO"
+msgstr "Pay through the payment system TRANZZO"
 
-msgid "POS_ID Tranzzo"
-msgstr "POS_ID Tranzzo"
+msgid "POS_ID TRANZZO"
+msgstr "POS_ID TRANZZO"
 
-msgid "API_KEY Tranzzo"
-msgstr "API_KEY Tranzzo"
+msgid "API_KEY TRANZZO"
+msgstr "API_KEY TRANZZO"
 
-msgid "API_SECRET Tranzzo"
-msgstr "API_SECRET Tranzzo"
+msgid "API_SECRET TRANZZO"
+msgstr "API_SECRET TRANZZO"
 
-msgid "ENDPOINTS_KEY Tranzzo"
-msgstr "ENDPOINTS_KEY Tranzzo"
+msgid "ENDPOINTS_KEY TRANZZO"
+msgstr "ENDPOINTS_KEY TRANZZO"
 
 msgid "Заказ не оплачен"
 msgstr "Order not paid"
