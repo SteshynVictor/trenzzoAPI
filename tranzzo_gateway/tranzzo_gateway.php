@@ -52,14 +52,11 @@ function tranzzo_init()
             $this->paymenttime = $this->get_option('paymenttime');
             $this->payment_method = $this->get_option('payment_method');
 
-
-            $this -> TEST_MODE = ($this->get_option('TEST_MODE') == 'yes')? 1 : 0;
-
             $this -> POS_ID = trim($this->get_option('POS_ID'));
 
             $this -> API_KEY = trim($this->get_option('API_KEY'));
 
-            $this->API_SECRET = trim($this->get_option('API_SECRET', 'PAY ONLINE'));
+            $this->API_SECRET = trim($this->get_option('API_SECRET'));
 
             $this->ENDPOINTS_KEY = trim($this->get_option('ENDPOINTS_KEY'));
 
