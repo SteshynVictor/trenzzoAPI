@@ -52,11 +52,14 @@ function tranzzo_init()
             $this->paymenttime = $this->get_option('paymenttime');
             $this->payment_method = $this->get_option('payment_method');
 
+
+            $this -> TEST_MODE = ($this->get_option('TEST_MODE') == 'yes')? 1 : 0;
+
             $this -> POS_ID = trim($this->get_option('POS_ID'));
 
             $this -> API_KEY = trim($this->get_option('API_KEY'));
 
-            $this->API_SECRET = trim($this->get_option('API_SECRET'));
+            $this->API_SECRET = trim($this->get_option('API_SECRET', 'PAY ONLINE'));
 
             $this->ENDPOINTS_KEY = trim($this->get_option('ENDPOINTS_KEY'));
 
@@ -165,31 +168,27 @@ function tranzzo_init()
 
                 $tranzzo = new TranzzoApi($this->POS_ID, $this->API_KEY, $this->API_SECRET, $this->ENDPOINTS_KEY);
 
-                $params = array();
-                $params[TranzzoApi::P_REQ_SERVER_URL] = add_query_arg('wc-api', __CLASS__, home_url('/'));
-                $params[TranzzoApi::P_REQ_RESULT_URL] = $this->get_return_url($order);
-                $params[TranzzoApi::P_REQ_ORDER] = strval($order_id);
-                $params[TranzzoApi::P_REQ_AMOUNT] = TranzzoApi::amountToDouble($data_order['total']);
-                $params[TranzzoApi::P_REQ_CURRENCY] = $data_order['currency'];
-                $params[TranzzoApi::P_REQ_DESCRIPTION] = "Order #{$order_id}";
+                $tranzzo->setServerUrl(add_query_arg('wc-api', __CLASS__, home_url('/')));
+                $tranzzo->setResultUrl($this->get_return_url($order));
+                $tranzzo->setOrderId($order_id);
+                $tranzzo->setAmount($data_order['total']);
+                $tranzzo->setCurrency($data_order['currency']);
+                $tranzzo->setDescription("Order #{$order_id}");
 
                 if(!empty($data_order['customer_id']))
-                    $params[TranzzoApi::P_REQ_CUSTOMER_ID] = strval($data_order['customer_id']);
+                    $tranzzo->setCustomerId($data_order['customer_id']);
                 else
-                    $params[TranzzoApi::P_REQ_CUSTOMER_ID] = !empty($data_order['billing']['email'])? $data_order['billing']['email'] : 'unregistered';
+                    $tranzzo->setCustomerId($data_order['billing']['email']);
 
-                $params[TranzzoApi::P_REQ_CUSTOMER_EMAIL] = !empty($data_order['billing']['email']) ? $data_order['billing']['email'] : 'unregistered';
+                $tranzzo->setCustomerEmail($data_order['billing']['email']);
 
-                if(!empty($data_order['billing']['first_name']))
-                    $params[TranzzoApi::P_REQ_CUSTOMER_FNAME] = $data_order['billing']['first_name'];
+                $tranzzo->setCustomerFirstName($data_order['billing']['first_name']);
 
-                if(!empty($data_order['billing']['last_name']))
-                    $params[TranzzoApi::P_REQ_CUSTOMER_LNAME] = $data_order['billing']['last_name'];
+                $tranzzo->setCustomerLastName($data_order['billing']['last_name']);
 
-                if(!empty($data_order['billing']['phone']))
-                    $params[TranzzoApi::P_REQ_CUSTOMER_PHONE] = $data_order['billing']['phone'];
+                $tranzzo->setCustomerPhone($data_order['billing']['phone']);
 
-                $params[TranzzoApi::P_REQ_PRODUCTS] = array();
+                $tranzzo->setProducts();
 
                 if(count($data_order['line_items']) > 0) {
                     $products = array();
@@ -204,14 +203,13 @@ function tranzzo_init()
 //                            'price_type' => 'gross', // net | gross
 //                            'vat' => 0,
                             'qty' => $product->get_quantity(),
-//                            'entity_id' => '',
                         );
                     }
 
-                    $params[TranzzoApi::P_REQ_PRODUCTS] = $products;
+                    $tranzzo->setProducts($products);
                 }
 
-                $response = $tranzzo->createPaymentHosted($params);
+                $response = $tranzzo->createPaymentHosted();
 
                 if(!empty($response['redirect_url'])) {
                     $woocommerce->cart->empty_cart();
@@ -229,8 +227,6 @@ function tranzzo_init()
         {
             global $woocommerce;
 
-//            self::writeLog(array('$_GET' => $_GET, '$_POST' => $_POST,), 'data check', 'notif');
-
             $data = $_POST['data'];
             $signature = $_POST['signature'];
             if(empty($data) && empty($signature)) die('LOL! Bad Request!!!');
@@ -238,13 +234,13 @@ function tranzzo_init()
             require_once(__DIR__ . '/TranzzoApi.php');
 
             $tranzzo = new TranzzoApi($this->POS_ID, $this->API_KEY, $this->API_SECRET, $this->ENDPOINTS_KEY);
-            $data_response = json_decode(TranzzoApi::base64url_decode($data), true);
-            $order_id = (int)$data_response[TranzzoApi::P_REQ_ORDER];
+            $data_response = TranzzoApi::parseDataResponse($data);
+            $order_id = (int)$data_response[TranzzoApi::P_RES_PROV_ORDER];
             if($tranzzo -> validateSignature($data, $signature) && $order_id) {
                 $order = wc_get_order($order_id);
-                $amount_payment = TranzzoApi::amountToDouble($data_response[TranzzoApi::P_REQ_AMOUNT]);
+                $amount_payment = TranzzoApi::amountToDouble($data_response[TranzzoApi::P_RES_AMOUNT]);
                 $amount_order = TranzzoApi::amountToDouble($order->get_total());
-                if ($data_response[TranzzoApi::P_RES_RESP_CODE] == 1000 && ($amount_payment == $amount_order)) {
+                if ($data_response[TranzzoApi::P_RES_RESP_CODE] == 1000 && ($amount_payment >= $amount_order)) {
                     $order->payment_complete();
                     $order->add_order_note(__('Заказ успешно оплачен через TRANZZO', 'tranzzo'));
                     $order->add_order_note("ID платежа(payment id): " . $data_response[TranzzoApi::P_RES_PAYMENT_ID]);
