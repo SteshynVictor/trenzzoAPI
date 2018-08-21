@@ -68,12 +68,14 @@ function tranzzo_init()
             if (!$this->supportCurrencyTRANZZO()) {
                 $this->enabled = 'no';
             }
+            $this->supports[] = 'refunds';
 
             // Actions
             add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
 
             // Payment listener/API hook
             add_action('woocommerce_api_wc_gateway_' . $this->id, array($this, 'check_tranzzo_response'));
+
         }
 
         public function admin_options()
@@ -235,27 +237,91 @@ function tranzzo_init()
 
             $tranzzo = new TranzzoApi($this->POS_ID, $this->API_KEY, $this->API_SECRET, $this->ENDPOINTS_KEY);
             $data_response = TranzzoApi::parseDataResponse($data);
+			// TranzzoApi::writeLog(array('response' => $data_response));
             $order_id = (int)$data_response[TranzzoApi::P_RES_PROV_ORDER];
             if($tranzzo -> validateSignature($data, $signature) && $order_id) {
                 $order = wc_get_order($order_id);
                 $amount_payment = TranzzoApi::amountToDouble($data_response[TranzzoApi::P_RES_AMOUNT]);
                 $amount_order = TranzzoApi::amountToDouble($order->get_total());
+
                 if ($data_response[TranzzoApi::P_RES_RESP_CODE] == 1000 && ($amount_payment >= $amount_order)) {
+
+                    $order->set_transaction_id( $data_response[TranzzoApi::P_RES_TRSACT_ID] );
                     $order->payment_complete();
                     $order->add_order_note(__('Заказ успешно оплачен через TRANZZO', 'tranzzo'));
                     $order->add_order_note("ID платежа(payment id): " . $data_response[TranzzoApi::P_RES_PAYMENT_ID]);
                     $order->add_order_note("ID транзакции(transaction id): " . $data_response[TranzzoApi::P_RES_TRSACT_ID]);
                     $order->save();
+                    update_post_meta( $order_id, 'tranzzo_response', json_encode($data_response) );
 
                     exit;
                 }
+                elseif ($data_response[TranzzoApi::P_RES_RESP_CODE] == 1004) {
 
-                $order->update_status('failed');
-                $order->add_order_note(__('Заказ не оплачен', 'tranzzo'));
-                $order->save();
+                    $order->add_order_note(__('Заказ успешно возвращен через TRANZZO', 'tranzzo'));
+                    $order->add_order_note("ID платежа(payment id): " . $data_response[TranzzoApi::P_RES_PAYMENT_ID]);
+                    $order->add_order_note("ID транзакции(transaction id): " . $data_response[TranzzoApi::P_RES_TRSACT_ID]);
+                    $order->save();
+                    return;
+                }
+                elseif ($order->get_status() == "pending") {
+                    $order->update_status('failed');
+                    $order->add_order_note(__('Заказ не оплачен', 'tranzzo'));
+                    $order->save();
+                }
+
+
                 exit;
             }
             exit;
+        }
+
+        public function process_refund( $order_id, $amount = null, $reason = '' ) {
+
+            $order = wc_get_order( $order_id );
+
+            if ( ! $order || ! $order->get_transaction_id() ) {
+                return new WP_Error( 'tranzzo_refund_error', __( 'Refund Error: Payment for this order has not been determined.', 'tranzzo' ) );
+            }
+            if ( 0 == $amount || null == $amount ) {
+                return new WP_Error( 'tranzzo_refund_error', __( 'Refund Error: You need to specify a refund amount.', 'tranzzo' ) );
+            }
+
+            $old_wc = version_compare( WC_VERSION, '3.0', '<' );
+            $order_amount = $order->get_total();
+            if ( $old_wc ) {
+                $order_currency = get_post_meta( $order_id, '_order_currency', true );
+            } else {
+                $order_currency = $order->get_currency();
+            }
+            require_once(__DIR__ . '/TranzzoApi.php');
+            $tranzzo_response = get_post_custom_values( 'tranzzo_response', $order_id );
+            $tranzzo_response = json_decode($tranzzo_response[0], true);
+
+            $tranzzo = new TranzzoApi($this->POS_ID, $this->API_KEY, $this->API_SECRET, $this->ENDPOINTS_KEY);
+            $data = [
+              'order_id' => strval($tranzzo_response['order_id']),
+              'order_amount' => $tranzzo->amountToDouble($order_amount),
+              'order_currency' => $order_currency,
+              'refund_date' =>  date('Y-m-d H:i:s'),
+              'amount' => $tranzzo->amountToDouble($amount),
+              'server_url' => add_query_arg('wc-api', __CLASS__, home_url('/')),
+            ];
+
+            $response = $tranzzo->createRefund($data);
+
+
+            if ($response['status'] != 'success') {
+                return new WP_Error( 'tranzzo_refund_error', __($response['message'] , 'tranzzo' ) );
+            }
+
+            else {
+                $refund_message = sprintf( __( 'Refunded %1$s - Reason: %3$s', 'tranzzo' ), $amount, $reason );
+
+                $order->add_order_note( $refund_message );
+
+                return true;
+            }
         }
 
         static function writeLog($data, $flag = '', $filename = 'info')

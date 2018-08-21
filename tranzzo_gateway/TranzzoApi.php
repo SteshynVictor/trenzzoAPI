@@ -47,8 +47,6 @@ class TranzzoApi
     const P_RES_AMOUNT      = 'amount';
     const P_RES_CURRENCY    = 'currency';
 
-
-
     const P_TRZ_ST_SUCCESS      = 'success';
     const P_TRZ_ST_PENDING      = 'pending';
     const P_TRZ_ST_CANCEL       = 'rejected';
@@ -62,6 +60,7 @@ class TranzzoApi
     //URI method
     const U_METHOD_PAYMENT = '/payment';
     const U_METHOD_POS = '/pos';
+    const U_METHOD_REFUND = '/refund';
 
 
 
@@ -280,17 +279,30 @@ class TranzzoApi
         curl_close($ch);
 
         // for check request
-//        self::writeLog($url, '', '', 0);
-//        self::writeLog(array('headers' => $this->headers));
-//        self::writeLog(array('params' => $params));
-//
-//        self::writeLog(array("httpcode" => $http_code, "errno" => $errno));
-//        self::writeLog('response', $server_response);
+       // self::writeLog($url, '', '');
+       // self::writeLog(array('headers' => $this->headers));
+       // self::writeLog(array('params' => $params));
+
+       // self::writeLog(array("httpcode" => $http_code, "errno" => $errno));
+       // self::writeLog('response', $server_response);
 
         if(!$errno && empty($server_response))
             return $http_code;
         else
             return ((json_decode($server_response, true))? json_decode($server_response, true) : $server_response);
+    }
+    /**
+     * @param $params
+     * @return mixed
+     */
+    public function createRefund($params = array())
+    {
+        $params[self::P_REQ_POS_ID] = $this->posId;
+
+        $this->setHeader('Accept: application/json');
+        $this->setHeader('Content-Type: application/json');
+
+        return $this->request(self::R_METHOD_POST, self::U_METHOD_REFUND, $params);
     }
 
     /**
