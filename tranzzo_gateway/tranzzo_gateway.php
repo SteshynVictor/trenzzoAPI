@@ -198,8 +198,7 @@ function tranzzo_init()
                 $tranzzo->setServerUrl(add_query_arg('wc-api', __CLASS__, home_url('/')));
                 $tranzzo->setResultUrl($this->get_return_url($order));
                 $tranzzo->setOrderId($order_id);
-//                $tranzzo->setAmount($data_order['total']);
-                $tranzzo->setAmount(1);
+                $tranzzo->setAmount($data_order['total']);
                 $tranzzo->setCurrency($data_order['currency']);
                 $tranzzo->setDescription("Order #{$order_id}");
 
@@ -223,8 +222,7 @@ function tranzzo_init()
                             'name' => $product->get_name(),
                             'url' => $product->get_product()->get_permalink(),
                             'currency' => $data_order['currency'],
-//                            'amount' => TranzzoApi::amountToDouble($product->get_total()),
-                            'amount' => TranzzoApi::amountToDouble(1),
+                            'amount' => TranzzoApi::amountToDouble($product->get_total()),
 //                            'price_type' => 'gross', // net | gross
 //                            'vat' => 0,
                             'qty' => $product->get_quantity(),
@@ -309,8 +307,7 @@ function tranzzo_init()
 //                self::writeLog((array)$order, 'order', 'check_response');
 
                 $amount_payment = TranzzoApi::amountToDouble($data_response[TranzzoApi::P_RES_AMOUNT]);
-//                $amount_order = TranzzoApi::amountToDouble($order->get_total());
-                $amount_order = TranzzoApi::amountToDouble(1);
+                $amount_order = TranzzoApi::amountToDouble($order->get_total());
 
 //                self::writeLog('CODE', $data_response[TranzzoApi::P_RES_RESP_CODE]);
                 if ($data_response[TranzzoApi::P_RES_RESP_CODE] == 1000 && ($amount_payment >= $amount_order)) {
