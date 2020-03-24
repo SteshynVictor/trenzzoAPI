@@ -308,14 +308,13 @@ class TranzzoApi
         $url = $this->apiUrl . '/' . $uri;
         //new
         $params = is_null($params) ? $this->params : $params;
-        self::writeLog(array('params' => $params));
         $data = json_encode($params);
 
         if (json_last_error()) {
             self::writeLog(json_last_error(), 'json_last_error', 'error');
             self::writeLog(json_last_error_msg(), 'json_last_error_msg', 'error');
         }
-        self::writeLog(array('$this' => (array)$this));
+//        self::writeLog(array('$this' => (array)$this));
         $this->setHeader('X-API-Auth: CPAY ' . $this->apiKey . ':' . $this->apiSecret);
         $this->setHeader('X-API-KEY: ' . $this->endpointsKey);
 
@@ -340,6 +339,7 @@ class TranzzoApi
 
         // for check request лог
         self::writeLog($url, '', '');
+        self::writeLog(array('params' => $params));
 //        self::writeLog($method, 'method1');
 //        self::writeLog(self::R_METHOD_POST, 'method2');
 

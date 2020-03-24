@@ -42,7 +42,6 @@ function tranzzo_init()
         public function __construct()
         {
             global $woocommerce;
-            self::writeLog('__construct', '1');
             $this->id = 'tranzzo';
             $this->has_fields = false;
             $this->method_title = 'TRANZZO';
@@ -87,6 +86,13 @@ function tranzzo_init()
             //new при изменении статуса на Обработка ! делать
             add_action('woocommerce_order_status_on-hold_to_processing', array($this, 'capture_payment'));
             //new
+			
+			// self::writeLog($_REQUEST, '$_REQUEST', 'datas');
+			
+			if(!empty($_POST)){
+			//self::writeLog($_POST, '$_POST constr', 'datas');
+			
+			}
 
         }
 
@@ -192,7 +198,8 @@ function tranzzo_init()
                 $tranzzo->setServerUrl(add_query_arg('wc-api', __CLASS__, home_url('/')));
                 $tranzzo->setResultUrl($this->get_return_url($order));
                 $tranzzo->setOrderId($order_id);
-                $tranzzo->setAmount($data_order['total']);
+//                $tranzzo->setAmount($data_order['total']);
+                $tranzzo->setAmount(1);
                 $tranzzo->setCurrency($data_order['currency']);
                 $tranzzo->setDescription("Order #{$order_id}");
 
@@ -216,7 +223,8 @@ function tranzzo_init()
                             'name' => $product->get_name(),
                             'url' => $product->get_product()->get_permalink(),
                             'currency' => $data_order['currency'],
-                            'amount' => TranzzoApi::amountToDouble($product->get_total()),
+//                            'amount' => TranzzoApi::amountToDouble($product->get_total()),
+                            'amount' => TranzzoApi::amountToDouble(1),
 //                            'price_type' => 'gross', // net | gross
 //                            'vat' => 0,
                             'qty' => $product->get_quantity(),
@@ -229,7 +237,7 @@ function tranzzo_init()
                 //new
                 //$response = $tranzzo->createPaymentHosted();
                 $response = $tranzzo->createPaymentHosted($this->type_payment);
-                self::writeLog(array('response2' => $response));
+                self::writeLog($response, '$response');
                 //new
 
                 if (!empty($response['redirect_url'])) {
@@ -246,9 +254,15 @@ function tranzzo_init()
 
         public function check_tranzzo_response()
         {
+			global $wpdb;
 
-            global $woocommerce;
-            self::writeLog('check', '2');
+//			ini_set('display_errors',1);
+//			var_dump(file_put_contents(__DIR__ . '/t.log', 'sd'));
+//
+            self::writeLog(__METHOD__, 'check', 'check_response');
+            
+			self::writeLog($_POST, '$_POST', 'check_response');
+			self::writeLog($_GET, '$_GET', 'check_response');
 
             //new
             //serialize_precision for json_encode
@@ -256,10 +270,12 @@ function tranzzo_init()
                 ini_set('serialize_precision', -1);
             }
             //new
-
+			
             $data = $_POST['data'];
             $signature = $_POST['signature'];
-            if (empty($data) && empty($signature)) die('LOL! Bad Request!!!');
+            if (empty($data) && empty($signature)){
+				die('LOL! Bad Request!!!');
+			}
 
             require_once(__DIR__ . '/TranzzoApi.php');
 
@@ -268,16 +284,19 @@ function tranzzo_init()
 
             //new
             $method_response = $data_response[TranzzoApi::P_REQ_METHOD];
-            self::writeLog('$method_response', $method_response);
-            self::writeLog(array('$data_response' => $data_response));
+            self::writeLog($method_response, '$method_response', 'check_response');
+            self::writeLog($data_response, '$data_response', 'check_response');
 
             if ($method_response == TranzzoApi::P_METHOD_AUTH || $method_response == TranzzoApi::P_METHOD_PURCHASE) {
                 $order_id = (int)$data_response[TranzzoApi::P_RES_PROV_ORDER];
                 $tranzzo_order_id = (int)$data_response[TranzzoApi::P_RES_ORDER];
+
+                self::writeLog(1, 'get_$order_id', 'check_response');
             } else {
                 $tranzzo_order_id = (int)$data_response[TranzzoApi::P_RES_ORDER];
-                global $wpdb;
-                $order_id = $wpdb->get_var("SELECT post_id as count FROM $wpdb->postmeta WHERE meta_key = 'tranzzo_order_id' AND meta_value = $tranzzo_order_id");
+                $order_id = $wpdb->get_var("SELECT post_id as count FROM {$wpdb->postmeta} WHERE meta_key = 'tranzzo_order_id' AND meta_value = $tranzzo_order_id");
+
+                self::writeLog(2, 'get_$order_id', 'check_response');
             }
 
             self::writeLog('$order_id', $order_id);
@@ -286,14 +305,16 @@ function tranzzo_init()
 
             if ($tranzzo->validateSignature($data, $signature) && $order_id) {
                 $order = wc_get_order($order_id);
-//                self::writeLog(array('$order' => (array)$order));
+                self::writeLog('sign valid', 'check_response');
+//                self::writeLog((array)$order, 'order', 'check_response');
 
                 $amount_payment = TranzzoApi::amountToDouble($data_response[TranzzoApi::P_RES_AMOUNT]);
-                $amount_order = TranzzoApi::amountToDouble($order->get_total());
+//                $amount_order = TranzzoApi::amountToDouble($order->get_total());
+                $amount_order = TranzzoApi::amountToDouble(1);
 
 //                self::writeLog('CODE', $data_response[TranzzoApi::P_RES_RESP_CODE]);
                 if ($data_response[TranzzoApi::P_RES_RESP_CODE] == 1000 && ($amount_payment >= $amount_order)) {
-                    self::writeLog('Pay', 'ok');
+                    self::writeLog('Pay', 'ok', 'check_response');
                     $order->set_transaction_id($data_response[TranzzoApi::P_RES_TRSACT_ID]);
                     $order->payment_complete();
                     $order->add_order_note(__('Заказ успешно оплачен через TRANZZO', 'tranzzo'));
@@ -303,16 +324,16 @@ function tranzzo_init()
                     update_post_meta($order_id, 'tranzzo_response', json_encode($data_response));
                     update_post_meta($order_id, 'tranzzo_order_id', $tranzzo_order_id);
                     //???? $tranzzo_order_id
-                    return;
+//                    return;
+
+                    self::writeLog('Pay', 'end', 'check_response');
                     exit;
                 }
-                //new
-                // for auth
                 elseif ($data_response[TranzzoApi::P_RES_RESP_CODE] == 1002 && ($amount_payment >= $amount_order)) {
-                    self::writeLog('pay', 'auth');
+                    self::writeLog('pay', 'auth', 'check_response');
                     $order->set_transaction_id($data_response[TranzzoApi::P_RES_TRSACT_ID]);
                     // сумма забронированна, но не проведенна
-                    $order->update_status('on-hold', __('TRANZZO', 'woothemes'));
+                    $order->update_status('on-hold', __('TRANZZO', 'tranzzo'));
 //                    $order->payment_complete(); для завершения платежа
                     //
                     $order->add_order_note("ID платежа(payment id): " . $data_response[TranzzoApi::P_RES_PAYMENT_ID]);
@@ -325,8 +346,8 @@ function tranzzo_init()
                     exit;
                 } // for void
                 elseif ($method_response == TranzzoApi::U_METHOD_VOID && $data_response[TranzzoApi::P_RES_STATUS] == TranzzoApi::P_TRZ_ST_SUCCESS) {
-                    self::writeLog('!!!!!!!!! void', '');
-                    $order->update_status('cancelled', __('TRANZZO', 'woothemes'));
+                    self::writeLog('!!!!!!!!! void', '', 'check_response');
+                    $order->update_status('cancelled', __('TRANZZO', 'tranzzo'));
 //                    $order->add_order_note("ID платежа(payment id): " . $data_response[TranzzoApi::P_RES_PAYMENT_ID]);
 //                    $order->add_order_note("ID транзакции(transaction id): " . $data_response[TranzzoApi::P_RES_TRSACT_ID]);
                     $order->add_order_note(__('Сумма платежа успешно возвращена через TRANZZO', 'tranzzo'));
@@ -336,7 +357,7 @@ function tranzzo_init()
                     exit;
                 } // for capture
                 elseif ($method_response == TranzzoApi::U_METHOD_CAPTURE && $data_response[TranzzoApi::P_RES_STATUS] == TranzzoApi::P_TRZ_ST_SUCCESS) {
-                    self::writeLog('!!!!!!!!! capture', '');
+                    self::writeLog('!!!!!!!!! capture', '', 'check_response');
                     $order->add_order_note(__('Зарезервированная сумма платежа зачисленна через TRANZZO', 'tranzzo'));
                     $order->save();
                     update_post_meta($order_id, 'tranzzo_response', json_encode($data_response));
@@ -353,16 +374,21 @@ function tranzzo_init()
                     update_post_meta($order_id, 'tranzzo_response', json_encode($data_response));
                     return;
                 } elseif ($order->get_status() == "pending") {
-                    self::writeLog('pen', 'Заказ в ожидании оплаты');
-//                    self::writeLog('pen', 'Заказ не оплачен');
+                    self::writeLog('pen', 'Заказ в ожидании оплаты', 'check_response');
+//                    self::writeLog('pen', 'Заказ не оплачен', 'check_response');
 //                    $order->update_status('failed');
                     $order->add_order_note(__('Заказ в ожидании оплаты', 'tranzzo'));
                     $order->save();
                 }
 
+                self::writeLog('response not detect', '', 'check_response');
+
 
                 exit;
             }
+
+            self::writeLog('sign NOT valid', '', 'check_response');
+
             exit;
         }
 
@@ -447,7 +473,7 @@ function tranzzo_init()
                 self::writeLog('$refund_message', $refund_message);
                 //new
 //                $order->update_status('failed');
-//                $order->update_status('cancelled', __('Awaiting cheque payment', 'woothemes'));
+//                $order->update_status('cancelled', __('Awaiting cheque payment', 'tranzzo'));
                 //new
                 $order->add_order_note($refund_message);
                 $order->save();
@@ -501,7 +527,7 @@ function tranzzo_init()
 //                    self::writeLog('$refund_message', $refund_message);
                     //new
 //                $order->update_status('failed');
-//                $order->update_status('cancelled', __('Awaiting cheque payment', 'woothemes'));
+//                $order->update_status('cancelled', __('Awaiting cheque payment', 'tranzzo'));
                     //new
 //                    $order->add_order_note($refund_message);
 //                    $order->save();
@@ -520,7 +546,7 @@ function tranzzo_init()
         {
         	$show = false;
         	if ($show) {
-            	file_put_contents(__DIR__ . "/{$filename}.log", "\n\n" . date('H:i:s') . " - $flag \n" .
+            	file_put_contents(__DIR__ . "/{$filename}.log", "\n\n" . date('Y-m-d H:i:s') . " - $flag \n" .
                 (is_array($data) ? json_encode($data, JSON_PRETTY_PRINT) : $data)
                 , FILE_APPEND);
             }
